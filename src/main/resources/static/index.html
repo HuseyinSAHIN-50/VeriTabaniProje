@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Giriş Yap - E-Kütüphane</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="login-visual"></div>
+
+        <div class="login-form-area">
+            
+            <div class="button-box">
+                <button type="button" class="toggle-btn active" onclick="showForm('login', this)">Giriş Yap</button>
+                <button type="button" class="toggle-btn" onclick="showForm('register', this)">Kayıt Ol</button>
+            </div>
+
+            <form id="login" class="input-group">
+                <h2 style="margin-bottom: 15px;">Hoşgeldiniz</h2>
+                <input type="email" id="loginEmail" placeholder="E-Posta Adresi" required>
+                <input type="password" id="loginPassword" placeholder="Şifre" required>
+                
+                <div style="text-align: right; margin: 10px 0;">
+                    <a href="#" onclick="showForm('forgot', null)" style="color: #666; text-decoration: none; font-size: 13px;">Şifremi Unuttum?</a>
+                </div>
+
+                <button type="button" class="submit-btn" style="width: 100%;" onclick="loginYap()">GİRİŞ YAP</button>
+                <p id="loginMessage" style="text-align: center; margin-top: 10px; color: red; font-size: 13px;"></p>
+            </form>
+
+            <form id="register" class="input-group">
+                <h2 style="margin-bottom: 15px;">Hesap Oluştur</h2>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="regName" placeholder="Ad" required>
+                    <input type="text" id="regSurname" placeholder="Soyad" required>
+                </div>
+                <input type="email" id="regEmail" placeholder="E-Posta" required>
+                <input type="text" id="regPhone" placeholder="Telefon" required>
+                <input type="password" id="regPassword" placeholder="Şifre" required>
+                <button type="button" class="submit-btn" style="width: 100%; margin-top: 10px;" onclick="kayitOl()">KAYIT OL</button>
+                <p id="regMessage" style="text-align: center; margin-top: 10px; color: red; font-size: 13px;"></p>
+            </form>
+
+            <form id="forgot" class="input-group">
+                <h2 style="margin-bottom: 15px;">Şifre Sıfırla</h2>
+                
+                <div id="step1">
+                    <p style="font-size: 13px; color: #666; margin-bottom: 10px;">E-posta adresinizi girin, kod gönderelim.</p>
+                    <input type="email" id="resetEmail" placeholder="E-Posta Adresiniz">
+                    <button type="button" class="btn btn-warning" style="width: 100%;" onclick="kodGonder()">KOD GÖNDER</button>
+                </div>
+
+                <div id="step2" style="display: none;">
+                    <input type="text" id="resetCode" placeholder="Gelen 6 Haneli Kod">
+                    <input type="password" id="newPass" placeholder="Yeni Şifre">
+                    <button type="button" class="btn btn-success" style="width: 100%;" onclick="sifreyiDegistir()">ŞİFREYİ DEĞİŞTİR</button>
+                </div>
+
+                <button type="button" onclick="showForm('login', document.querySelector('.toggle-btn'))" style="background: none; border: none; color: var(--primary); width: 100%; margin-top: 15px; cursor: pointer;">Giriş'e Dön</button>
+                <p id="resetMessage" style="text-align: center; margin-top: 10px; font-size: 13px;"></p>
+            </form>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        function showForm(formId, btn) {
+            ['login', 'register', 'forgot'].forEach(id => {
+                const el = document.getElementById(id);
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+                el.style.left = '450px';
+            });
+            const target = document.getElementById(formId);
+            target.style.opacity = '1';
+            target.style.pointerEvents = 'all';
+            target.style.left = '50px';
+
+            if(btn) {
+                document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                if(btn.classList.contains('toggle-btn')) btn.classList.add('active');
+            }
+        }
+        setTimeout(() => showForm('login', document.querySelector('.toggle-btn')), 100);
+    </script>
+</body>
+</html>

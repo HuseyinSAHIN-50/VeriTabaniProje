@@ -1,0 +1,133 @@
+:root {
+    --primary: #4e54c8;
+    --secondary: #8f94fb;
+    --dark: #2c3e50;
+    --light: #f4f6f8;
+    --glass: rgba(255, 255, 255, 0.95);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Panel modunda body ayarı */
+body.panel-mode {
+    display: block;
+    padding-top: 80px;
+    align-items: unset;
+}
+
+/* --- ORTAK BİLEŞENLER --- */
+.btn, button {
+    padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+    font-weight: 600; transition: 0.3s; color: white; display: inline-block;
+    font-size: 0.9rem;
+}
+.btn:hover, button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+.toggle-btn.active { background: var(--primary); color: white; }
+.toggle-btn { background: transparent; color: #555; }
+.btn-primary, .submit-btn, .btn-blue { background: #3498db; }
+.btn-success, .btn-green { background: #2ecc71; }
+.btn-danger, .btn-red { background: #e74c3c; }
+.btn-warning, .btn-orange { background: #f39c12; }
+.btn-disabled { background: #bdc3c7; cursor: not-allowed; }
+
+input, select {
+    width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd;
+    border-radius: 8px; background: #f9f9f9; outline: none; transition: 0.3s;
+}
+input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(78, 84, 200, 0.1); }
+
+/* --- LOGIN TASARIMI --- */
+.container {
+    width: 900px; height: 600px; background: var(--glass);
+    border-radius: 20px; box-shadow: var(--shadow);
+    display: flex; overflow: hidden; position: relative;
+}
+.login-visual {
+    flex: 1; background: url('https://images.unsplash.com/photo-1507842217121-9e962835d75d?auto=format&fit=crop&w=800&q=80') center/cover;
+    position: relative;
+}
+.login-visual::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to right, rgba(78,84,200,0.8), rgba(143,148,251,0.4));
+}
+
+/* --- DÜZELTME BURADA --- */
+.login-form-area {
+    flex: 1; 
+    padding: 50px 40px; /* Üstten boşluk verildi */
+    display: flex; 
+    flex-direction: column; 
+    justify-content: flex-start; /* Merkeze DEĞİL, yukarı hizalandı */
+    position: relative;
+}
+
+/* Sekme Geçişleri */
+.button-box {
+    display: flex; background: #eee; padding: 5px; border-radius: 30px;
+    margin-bottom: 20px; width: 100%;
+    z-index: 10; /* Üstte kalması için */
+    position: relative;
+}
+.toggle-btn { flex: 1; border-radius: 25px; padding: 10px; text-align: center; }
+
+/* Form Konumlandırma */
+.input-group {
+    position: absolute; 
+    width: 80%; 
+    transition: 0.5s; 
+    top: 130px; /* Butonların altına denk gelecek şekilde ayarlandı */
+}
+
+/* Formların Varsayılan Konumları */
+#login { left: 50px; }
+#register { left: 450px; opacity: 0; pointer-events: none; }
+#forgot { left: 450px; opacity: 0; pointer-events: none; }
+
+/* --- PANEL TASARIMI --- */
+.navbar {
+    position: fixed; top: 0; left: 0; width: 100%; height: 70px;
+    background: var(--glass); backdrop-filter: blur(10px);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 50px; z-index: 100; box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+}
+
+.main-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+.card, .stat-card {
+    background: white; padding: 25px; border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.03); margin-bottom: 20px;
+}
+.stat-card { text-align: center; border-bottom: 4px solid var(--primary); }
+.stat-card h3 { font-size: 0.9rem; color: #666; font-weight: 500; }
+.stat-card p { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin: 10px 0; }
+
+.stats-container {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px; margin-bottom: 30px;
+}
+
+table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+th { text-align: left; padding: 15px; color: #888; font-weight: 600; }
+td { background: #fcfcfc; padding: 15px; border-top: 1px solid #eee; border-bottom: 1px solid #eee; vertical-align: middle; }
+td:first-child { border-left: 1px solid #eee; border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+td:last-child { border-right: 1px solid #eee; border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+.book-cover { width: 40px; height: 60px; object-fit: cover; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.no-cover { width: 40px; height: 60px; background: #eee; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #999; }
+
+.badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: white; }
+.badge-active { background: #f1c40f; color: #444; }
+.badge-returned { background: #2ecc71; }
+.badge-late { background: #e74c3c; }
+
+.admin-only { border-left: 5px solid #f39c12; display: none; }

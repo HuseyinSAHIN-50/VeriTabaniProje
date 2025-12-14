@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Kütüphane Paneli</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="panel-mode">
+
+    <nav class="navbar">
+        <h2 style="color: var(--primary); margin:0;">📚 E-Kütüphane</h2>
+        
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <span id="welcomeMsg" style="font-size: 14px; font-weight: 500;"></span>
+            <button onclick="cikisYap()" class="btn btn-red">Çıkış</button>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>TOPLAM KİTAP</h3> <p id="statBooks">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>TOPLAM ÜYE</h3> <p id="statUsers">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>AKTİF ÖDÜNÇ</h3> <p id="statLoans">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>CEZALARIM</h3> <p id="statPenalty" style="color: #e74c3c;">0 TL</p>
+            </div>
+        </div>
+
+        <div class="card admin-only" id="adminArea">
+            <h3 style="border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px;">🛠️ Yönetici İşlemleri</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="newBookTitle" placeholder="Kitap Adı">
+                <input type="text" id="newBookISBN" placeholder="ISBN" style="width: 100px;">
+                <input type="text" id="newBookAuthor" placeholder="Yazar">
+                <input type="text" id="newBookCat" placeholder="Kategori">
+                <input type="number" id="newBookStock" placeholder="Stok" style="width: 80px;">
+                <input type="number" id="newBookYear" placeholder="Yıl" style="width: 80px;" value="2024">
+                <button id="actionBtn" onclick="kitapEkle()" class="btn btn-success">Ekle</button>
+                <button id="cancelBtn" onclick="iptalEt()" class="btn btn-red" style="display:none;">İptal</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">📖 Kitap Listesi</h3>
+                <div style="display:flex; gap:10px; width: 40%;">
+                     <input type="text" id="searchInput" placeholder="Kitap, Yazar veya Kategori ara..." style="margin:0;">
+                     <button onclick="kitapAra()" class="btn btn-blue"><i class="fas fa-search"></i></button>
+                     <button onclick="kitaplariGetir()" class="btn btn-warning"><i class="fas fa-sync"></i></button>
+                </div>
+            </div>
+            <div style="max-height: 400px; overflow-y: auto; margin-top:15px;">
+                <table id="bookTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>Kitap Adı</th><th>Yazar</th><th>Kategori</th><th>Stok</th><th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            
+            <div class="card" style="flex: 1;">
+                <h3>🔖 Ödünç Geçmişi</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table id="loanTable">
+                        <thead>
+                            <tr>
+                                <th>Kitap</th><th>Tarih</th><th>Durum</th><th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card" style="flex: 1;">
+                <h3>❤️ Favorilerim</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table id="favTable">
+                        <thead>
+                            <tr>
+                                <th>Kitap</th><th>Yazar</th><th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card" style="flex: 1;">
+                <h3>⚠️ Cezalar</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table id="penaltyTable">
+                        <thead>
+                            <tr>
+                                <th>Kitap</th><th>Tutar</th><th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const token = localStorage.getItem("jwtToken");
+        const userEmail = localStorage.getItem("userEmail");
+        let guncellenecekId = null;
+
+        if (!token) window.location.href = "index.html";
+        document.getElementById("welcomeMsg").innerText = "Kullanıcı: " + userEmail;
+
+        function parseJwt (token) {
+            try { return JSON.parse(decodeURIComponent(window.atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''))); } catch (e) { return {}; }
+        };
+        const decodedToken = parseJwt(token);
+        const isAdmin = JSON.stringify(decodedToken).includes("ROLE_ADMIN");
+        if (isAdmin) document.getElementById("adminArea").style.display = "block";
+        function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('tr-TR') : "-"; }
+
+        // --- 1. ARAMA FONKSİYONU ---
+        async function kitapAra() {
+            const query = document.getElementById("searchInput").value;
+            if(!query) { kitaplariGetir(); return; }
+
+            const res = await fetch("http://localhost:8080/api/books/search?query=" + query, { 
+                headers: { "Authorization": "Bearer " + token } 
+            });
+            const books = await res.json();
+            tabloDoldur(books);
+        }
+
+        async function kitaplariGetir() {
+            const res = await fetch("http://localhost:8080/api/books", { headers: { "Authorization": "Bearer " + token } });
+            const books = await res.json();
+            tabloDoldur(books);
+        }
+
+        function tabloDoldur(books) {
+            const tbody = document.querySelector("#bookTable tbody");
+            tbody.innerHTML = "";
+            books.forEach(book => {
+                let btns = isAdmin ? 
+                    `<button onclick="hazirla(${book.bookId}, '${book.title}', '${book.isbn}', ${book.stockQuantity}, '${book.author?.authorName}', '${book.category?.categoryName}')" class="btn-orange"><i class="fas fa-edit"></i></button> 
+                     <button onclick="sil(${book.bookId})" class="btn-red"><i class="fas fa-trash"></i></button>` :
+                    `<button onclick="oduncAl(${book.bookId})" class="btn-green">Al</button>
+                     <button onclick="favoriIsle(${book.bookId})" class="btn-warning"><i class="fas fa-heart"></i></button>`;
+
+                tbody.innerHTML += `<tr>
+                    <td>${book.bookId}</td>
+                    <td style="font-weight:bold;">${book.title}</td>
+                    <td>${book.author?.authorName || '-'}</td>
+                    <td>${book.category?.categoryName || '-'}</td>
+                    <td>${book.stockQuantity > 0 ? book.stockQuantity : '<span style="color:red">Tükendi</span>'}</td>
+                    <td>${btns}</td>
+                </tr>`;
+            });
+        }
+
+        // --- 2. FAVORİ İŞLEMLERİ ---
+        async function favorileriGetir() {
+            const res = await fetch("http://localhost:8080/api/favorites", { headers: { "Authorization": "Bearer " + token } });
+            const favs = await res.json();
+            const tbody = document.querySelector("#favTable tbody");
+            tbody.innerHTML = "";
+            if(favs.length === 0) tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:#999;'>Favori yok.</td></tr>";
+
+            favs.forEach(f => {
+                tbody.innerHTML += `<tr>
+                    <td>${f.book.title}</td>
+                    <td>${f.book.author?.authorName}</td>
+                    <td><button onclick="favoriIsle(${f.book.bookId})" class="btn-red"><i class="fas fa-times"></i></button></td>
+                </tr>`;
+            });
+        }
+
+        async function favoriIsle(bookId) {
+            const res = await fetch("http://localhost:8080/api/favorites/" + bookId, { 
+                method: "POST", headers: { "Authorization": "Bearer " + token } 
+            });
+            if(res.ok) { 
+                favorileriGetir(); 
+            }
+        }
+
+        async function istatistikleriGetir() {
+            try {
+                const res = await fetch("http://localhost:8080/api/loans/stats", { headers: { "Authorization": "Bearer " + token } });
+                const data = await res.json();
+                document.getElementById("statBooks").innerText = data.totalBooks || 0;
+                document.getElementById("statUsers").innerText = data.totalUsers || 0;
+                document.getElementById("statLoans").innerText = data.activeLoans || 0;
+            } catch(e) {}
+        }
+        async function oduncleriGetir() {
+            const res = await fetch("http://localhost:8080/api/loans/my-loans", { headers: { "Authorization": "Bearer " + token } });
+            const loans = await res.json();
+            const tbody = document.querySelector("#loanTable tbody");
+            tbody.innerHTML = "";
+            loans.forEach(loan => {
+                let statusBadge = loan.isReturned ? `<span class="badge badge-returned">İade</span>` : (new Date(loan.dueDate) < new Date() ? `<span class="badge badge-late">Gecikti</span>` : `<span class="badge badge-active">Okunuyor</span>`);
+                let actionBtn = loan.isReturned ? `-` : `<button onclick="iadeEt(${loan.loanId})" class="btn-blue">İade</button>`;
+                tbody.innerHTML += `<tr><td>${loan.book.title}</td><td>${formatDate(loan.borrowDate)}</td><td>${statusBadge}</td><td>${actionBtn}</td></tr>`;
+            });
+        }
+        async function cezalariGetir() {
+            const res = await fetch("http://localhost:8080/api/penalties/my-penalties", { headers: { "Authorization": "Bearer " + token } });
+            const penalties = await res.json();
+            const tbody = document.querySelector("#penaltyTable tbody");
+            tbody.innerHTML = "";
+            let totalDebt = 0;
+            penalties.forEach(p => {
+                let btn = !p.paymentStatus ? `<button onclick="cezaOde(${p.penaltyId})" class="btn-warning" style="padding:2px 8px; font-size:12px;">Öde</button>` : `<span class="badge badge-returned">Ödendi</span>`;
+                if(!p.paymentStatus) totalDebt += p.penaltyAmount;
+                tbody.innerHTML += `<tr><td>${p.loan.book.title}</td><td>${p.penaltyAmount} TL</td><td>${btn}</td></tr>`;
+            });
+            document.getElementById("statPenalty").innerText = totalDebt + " TL";
+        }
+        
+        async function kitapEkle() {
+             const data = {
+                title: document.getElementById("newBookTitle").value,
+                isbn: document.getElementById("newBookISBN").value,
+                authorName: document.getElementById("newBookAuthor").value,
+                categoryName: document.getElementById("newBookCat").value,
+                stockQuantity: parseInt(document.getElementById("newBookStock").value),
+                publicationYear: parseInt(document.getElementById("newBookYear").value)
+            };
+            const url = guncellenecekId ? "http://localhost:8080/api/books/" + guncellenecekId : "http://localhost:8080/api/books/add";
+            const method = guncellenecekId ? "PUT" : "POST";
+            await fetch(url, { method: method, headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify(data) });
+            iptalEt(); refreshAll();
+        }
+        async function sil(id) {
+            if(confirm("Silmek istediğinize emin misiniz?")) {
+                await fetch("http://localhost:8080/api/books/" + id, { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+                refreshAll();
+            }
+        }
+        async function oduncAl(id) {
+            if(!confirm("Almak istiyor musunuz?")) return;
+            const res = await fetch("http://localhost:8080/api/loans/borrow", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ bookId: id }) });
+            if(res.ok) alert(await res.text()); refreshAll();
+        }
+        async function iadeEt(id) {
+            if(!confirm("İade etmek istiyor musunuz?")) return;
+            await fetch("http://localhost:8080/api/loans/return/" + id, { method: "POST", headers: { "Authorization": "Bearer " + token } });
+            refreshAll();
+        }
+        async function cezaOde(id) {
+            if(!confirm("Ödemek istiyor musunuz?")) return;
+            await fetch("http://localhost:8080/api/penalties/pay/" + id, { method: "POST", headers: { "Authorization": "Bearer " + token } });
+            cezalariGetir();
+        }
+
+        function hazirla(id, t, i, s, a, c) {
+            guncellenecekId = id;
+            document.getElementById("newBookTitle").value = t; 
+            document.getElementById("newBookISBN").value = i;
+            document.getElementById("newBookStock").value = s; 
+            document.getElementById("newBookAuthor").value = a;
+            document.getElementById("newBookCat").value = c;
+            document.getElementById("actionBtn").innerText = "Kaydet"; 
+            document.getElementById("cancelBtn").style.display = "inline";
+        }
+        function iptalEt() {
+            guncellenecekId = null;
+            document.querySelectorAll("#adminArea input").forEach(i => i.value = "");
+            document.getElementById("actionBtn").innerText = "Ekle"; 
+            document.getElementById("cancelBtn").style.display = "none";
+        }
+        function cikisYap() { localStorage.clear(); window.location.href = "index.html"; }
+        function refreshAll() { istatistikleriGetir(); kitaplariGetir(); oduncleriGetir(); cezalariGetir(); favorileriGetir(); }
+        refreshAll();
+    </script>
+</body>
+</html>
