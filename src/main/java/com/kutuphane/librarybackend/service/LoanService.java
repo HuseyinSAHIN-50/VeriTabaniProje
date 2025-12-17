@@ -1,7 +1,9 @@
 package com.kutuphane.librarybackend.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,47 +25,51 @@ public class LoanService {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
 
-    @Transactional // İşlem sırasında hata olursa veritabanını eski haline getirir (Rollback)
+    // --- KİTAP ÖDÜNÇ ALMA ---
+    @Transactional
     public String borrowBook(LoanRequest request, String userEmail) {
-        // 1. Kitabı Bul
         Book book = bookRepository.findById(request.getBookId())
                 .orElseThrow(() -> new RuntimeException("Kitap bulunamadı."));
 
-        // 2. Stok Kontrolü
         if (book.getStockQuantity() <= 0) {
             throw new RuntimeException("Üzgünüz, bu kitap stokta kalmadı.");
         }
 
-        // 3. Kullanıcıyı Bul (Token'dan gelen email ile)
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı."));
 
-        // 4. Ödünç Kaydı Oluştur
         Loan loan = new Loan();
         loan.setUser(user);
         loan.setBook(book);
         loan.setBorrowDate(LocalDateTime.now());
-        loan.setDueDate(LocalDateTime.now().plusDays(15)); // 15 gün süre
+        
+        // TEST İÇİN: 1 Dakika süre veriyoruz
+        loan.setDueDate(LocalDateTime.now().plusMinutes(1)); 
+        
         loan.setIsReturned(false);
 
         loanRepository.save(loan);
 
-        // 5. Stoktan Düş
         book.setStockQuantity(book.getStockQuantity() - 1);
         bookRepository.save(book);
 
-        String emailSubject = "Kütüphane: Ödünç Alma İşlemi Başarılı";
-String emailBody = "Sayın " + user.getFirstName() + ",\n\n" +
-        "'" + book.getTitle() + "' adlı kitabı başarıyla ödünç aldınız.\n" +
-        "Son Teslim Tarihi: " + loan.getDueDate().toLocalDate() + "\n\n" +
-        "Lütfen kitabı zamanında iade ediniz.\n\n" +
-        "İyi okumalar!";
-
-// Arka planda mail at (Hata olsa bile akışı bozmaz)
-emailService.sendSimpleEmail(user.getEmail(), emailSubject, emailBody);
-        return "Kitap başarıyla ödünç alındı. Son teslim tarihi: " + loan.getDueDate().toLocalDate();
+        // Bilgilendirme Maili
+        try {
+            String emailSubject = "E-Kütüphane: Kitap Ödünç Alındı";
+            String emailBody = "Sayın " + user.getFirstName() + ",\n\n" +
+                    "'" + book.getTitle() + "' kitabını başarıyla ödünç aldınız.\n" +
+                    "Son Teslim Tarihi: " + loan.getDueDate().toLocalDate() + "\n\n" +
+                    "Keyifli okumalar dileriz.";
+            emailService.sendSimpleEmail(user.getEmail(), emailSubject, emailBody);
+        } catch (Exception e) {
+            System.err.println("Mail gönderilemedi: " + e.getMessage());
+        }
+        
+        return "Kitap başarıyla ödünç alındı.";
     }
-        @Transactional
+
+    // --- KİTAP İADE ETME ---
+    @Transactional
     public String returnBook(Integer loanId) {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new RuntimeException("Kayıt bulunamadı."));
@@ -72,12 +78,10 @@ emailService.sendSimpleEmail(user.getEmail(), emailSubject, emailBody);
             throw new RuntimeException("Bu kitap zaten iade edilmiş.");
         }
 
-        // İade bilgilerini güncelle
         loan.setIsReturned(true);
         loan.setReturnDate(LocalDateTime.now());
-        loanRepository.save(loan); // BURADA TRIGGER DEVREYE GİRECEK!
+        loanRepository.save(loan); // SQL Trigger burada devreye girip asıl cezayı yazar
 
-        // Stok miktarını geri artır (Kitap kütüphaneye döndü)
         Book book = loan.getBook();
         book.setStockQuantity(book.getStockQuantity() + 1);
         bookRepository.save(book);
@@ -85,8 +89,32 @@ emailService.sendSimpleEmail(user.getEmail(), emailSubject, emailBody);
         return "Kitap başarıyla iade edildi.";
     }
 
-    // 2. KULLANICININ ÖDÜNÇ ALDIKLARINI LİSTELEME
-    public java.util.List<Loan> getUserLoans(Integer userId) {
+    public List<Loan> getUserLoans(Integer userId) {
         return loanRepository.findByUser_UserId(userId);
+    }
+
+    // --- OTOMATİK GECİKME UYARISI ---
+    // Her dakikanın başında çalışır
+    @Scheduled(cron = "0 * * * * *") 
+    public void sendOverdueNotifications() {
+        System.out.println("Zamanlayıcı çalıştı: Gecikmiş kitaplar kontrol ediliyor...");
+        
+        List<Loan> overdueLoans = loanRepository.findOverdueLoans(LocalDateTime.now());
+
+        for (Loan loan : overdueLoans) {
+            try {
+                String email = loan.getUser().getEmail();
+                String subject = "GECİKME UYARISI: Kitap İade Süresi Doldu";
+                String body = "Sayın " + loan.getUser().getFirstName() + ",\n\n" +
+                              "'" + loan.getBook().getTitle() + "' kitabınızın süresi dolmuştur.\n" +
+                              "Lütfen en kısa sürede iade ediniz. Şu anki gecikme cezanız sistemde işlemektedir.\n\n" +
+                              "E-Kütüphane Sistemi";
+                
+                emailService.sendSimpleEmail(email, subject, body);
+                System.out.println("Uyarı maili gönderildi: " + email);
+            } catch (Exception e) {
+                System.err.println("Mail hatası (" + loan.getLoanId() + "): " + e.getMessage());
+            }
+        }
     }
 }

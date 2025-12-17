@@ -34,13 +34,13 @@ public class LoanController {
         return ResponseEntity.ok(loanService.borrowBook(request, userEmail));
     }
 
-    // YENİ: İade Etme
+    //İade Etme
     @PostMapping("/return/{loanId}")
     public ResponseEntity<String> returnBook(@PathVariable Integer loanId) {
         return ResponseEntity.ok(loanService.returnBook(loanId));
     }
 
-    // YENİ: Ödünçlerimi Gör
+    //Ödünçlerimi Gör
     @GetMapping("/my-loans")
     public ResponseEntity<List<Loan>> getMyLoans() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();

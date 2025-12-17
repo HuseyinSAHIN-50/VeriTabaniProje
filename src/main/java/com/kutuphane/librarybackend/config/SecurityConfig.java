@@ -33,8 +33,11 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
                 "/index.html", 
                 "/style.css",
                 "/panel.html", 
-                "/script.js", 
-                "/"
+                "/script.js",
+                "/",
+                "/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html"
             ).permitAll()
             
             // Diğer her yer kilitli olsun:

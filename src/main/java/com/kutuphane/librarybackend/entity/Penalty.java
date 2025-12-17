@@ -1,5 +1,6 @@
 package com.kutuphane.librarybackend.entity;
 
+import java.math.BigDecimal; // ÖNEMLİ: Bu import olmalı
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -11,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -19,22 +21,27 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Penalty {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "penalty_id")
     private Integer penaltyId;
 
-    // Hangi ödünç işlemine ceza kesildi?
     @OneToOne
-    @JoinColumn(name = "loan_id", unique = true)
+    @JoinColumn(name = "loan_id", unique = true, nullable = false)
     private Loan loan;
 
-    @Column(name = "penalty_amount")
-    private Double penaltyAmount;
+    // --- DÜZELTME BURADA ---
+    // Eğer burada "Double" yazıyorsa hatayı o veriyor.
+    // Burası "BigDecimal" olmalı.
+    @Column(name = "penalty_amount", nullable = false)
+    private BigDecimal penaltyAmount; 
+    // -----------------------
 
     @Column(name = "payment_status")
-    private Boolean paymentStatus; // false: ödenmedi, true: ödendi
+    private Boolean paymentStatus;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

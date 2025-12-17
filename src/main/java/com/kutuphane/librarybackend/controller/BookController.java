@@ -56,7 +56,7 @@ public ResponseEntity<String> deleteBook(@PathVariable Integer id) {
         return ResponseEntity.ok(result);
     }
 
-    // YENİ: Arama Endpoint'i
+    //Arama Endpoint'i
     @GetMapping("/search")
     public ResponseEntity<List<Book>> searchBooks(@RequestParam String query) {
         return ResponseEntity.ok(bookService.searchBooks(query));

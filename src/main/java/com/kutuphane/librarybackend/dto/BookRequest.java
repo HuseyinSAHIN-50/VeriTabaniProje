@@ -8,8 +8,6 @@ public class BookRequest {
     private String isbn;
     private Integer publicationYear;
     private Integer stockQuantity;
-    
-    // ID yerine doğrudan isimleri alıyoruz
     private String authorName;
     private String categoryName;
 }

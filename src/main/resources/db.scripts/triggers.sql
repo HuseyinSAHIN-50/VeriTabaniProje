@@ -1,62 +1,38 @@
--- triggers.sql
+-- triggers.sql (DAKİKALIK CEZA TEST VERSİYONU)
 
+DROP TRIGGER IF EXISTS trg_CalculatePenalty;
+GO
 
-
--- Eğer trigger daha önce varsa güncellemek için ALTER, yoksa CREATE yapar
-
-CREATE OR ALTER TRIGGER trg_CalculatePenalty
-
+CREATE TRIGGER trg_CalculatePenalty
 ON Loans
-
 AFTER UPDATE
-
 AS
-
 BEGIN
+    -- Dakika başı ceza miktarı (Örn: Dakikası 10 TL olsun ki belli olsun)
+    DECLARE @DakikaBasiCeza DECIMAL(10, 2) = 10.00; 
 
-    -- Değişken tanımları
+    DECLARE @LoanID INT;
+    DECLARE @DueDate DATETIME;
+    DECLARE @ReturnDate DATETIME;
+    DECLARE @IsReturned BIT;
 
-    DECLARE @DailyPenalty DECIMAL(10, 2) = 50.00; -- Günlük ceza miktarı (Örn: 5 TL)
+    SELECT 
+        @LoanID = i.loan_id, 
+        @DueDate = i.due_date, 
+        @ReturnDate = i.return_date,
+        @IsReturned = i.is_returned
+    FROM inserted i;
 
-
-
-    -- Sadece 'is_returned' alanı 0'dan 1'e döndüyse (Kitap iade edildiyse) çalışır
-
-    IF UPDATE(is_returned)
-
+    -- Eğer iade edildiyse VE teslim tarihi geçtiyse
+    IF (@IsReturned = 1) AND (@ReturnDate > @DueDate)
     BEGIN
-
-        -- Penalties tablosuna otomatik kayıt ekle
+        -- DİKKAT: Burada 'DAY' yerine 'MINUTE' kullanıyoruz
+        DECLARE @GecikenDakika INT = DATEDIFF(MINUTE, @DueDate, @ReturnDate);
+        
+        -- Cezayı hesapla (Dakika * Miktar)
+        DECLARE @ToplamCeza DECIMAL(10, 2) = @GecikenDakika * @DakikaBasiCeza;
 
         INSERT INTO Penalties (loan_id, penalty_amount, payment_status, created_at)
-
-        SELECT
-
-            i.loan_id,
-
-            -- Ceza Hesaplama: (İade Tarihi - Son Teslim Tarihi) * Günlük Ceza
-
-            DATEDIFF(day, i.due_date, i.return_date) * @DailyPenalty,
-
-            0, -- Ödenmedi olarak işaretle
-
-            GETDATE()
-
-        FROM
-
-            inserted i
-
-            INNER JOIN deleted d ON i.loan_id = d.loan_id
-
-        WHERE
-
-            i.is_returned = 1       -- Şu an iade edildi
-
-            AND d.is_returned = 0   -- Az önce iade edilmemişti (Tekrarı önlemek için)
-
-            AND i.return_date > i.due_date; -- Ve geç getirilmiş
-
+        VALUES (@LoanID, @ToplamCeza, 0, GETDATE());
     END
-
 END;
-
