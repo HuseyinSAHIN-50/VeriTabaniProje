@@ -21,12 +21,10 @@ public class ApplicationConfig {
 
     private final UserRepository userRepository;
 
-    // 1. Kullanıcı bulma mantığı (UserDetailsService)
+    // 1. Kullanıcı bulma mantığı
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> userRepository.findByEmail(username)
-                // User Entity'mizin UserDetails interface'ini implemente etmesi gerekiyor (Aşağıda yapacağız)
-                // Şimdilik hata vermemesi için basit bir lambda yazdık
                 .map(user -> org.springframework.security.core.userdetails.User.builder()
                         .username(user.getEmail())
                         .password(user.getPassword())
@@ -35,7 +33,7 @@ public class ApplicationConfig {
                 .orElseThrow(() -> new UsernameNotFoundException("Kullanıcı bulunamadı"));
     }
 
-    // 2. AuthenticationProvider (Veritabanı kontrolcüsü)
+    // 2.Veritabanı kontrolcüsü
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
